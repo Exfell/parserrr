@@ -4,7 +4,7 @@ import os
 def collect():
 # Список файлов
     files = ['out_1.csv', 'out_2.csv', 'out_3.csv']
-
+    files2 = ['1.csv','2.csv','3.csv']
     # Чтение и объединение
     dfs = [pd.read_csv(file, header=None) for file in files]
     merged_df = pd.concat(dfs, ignore_index=True)
@@ -14,4 +14,6 @@ def collect():
 
     # Удаляем старые файлы
     for file in files:
+        os.remove(file)
+    for file in files2:
         os.remove(file)

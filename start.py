@@ -18,7 +18,7 @@ def worker(filename_input):
 def main():
     path = sys.argv[1]
     divide.divide(path)
-    input_files = ['1', '2', '3','4']
+    input_files = ['1', '2', '3']
     processes = []
     for filename in input_files:
         p = multiprocessing.Process(target=worker, args=(filename + '.csv',))

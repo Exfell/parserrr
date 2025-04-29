@@ -10,7 +10,7 @@ def worker(filename_input):
         filename_out=filename_out,
         fileformats=fileformats,
         chunk_size=10**9,
-        concurrency=300
+        concurrency=200
     )
 
 def main():

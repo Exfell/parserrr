@@ -4,7 +4,7 @@ import csv
 def divide():
     # Считываем все строки
     input_file = input('Введите название файла, который надо разделить:')+'.csv'
-    with open(input_file, 'r', encoding='utf-8-sig') as f:
+    with open(input_file, 'r', encoding='cp1251') as f:
         reader = list(csv.reader(f))
         total_rows = len(reader)
     n = 3 # т.к. 3 процесса
@@ -16,7 +16,7 @@ def divide():
         # Распределяем остаток по частям
         end = start + chunk_size + (1 if i < remainder else 0)
         chunk = reader[start:end]
-
+    
         # Записываем чанк в новый файл
         output_file = f'{i + 1}.csv'
         with open(output_file, 'w', newline='', encoding='utf-8-sig') as f:

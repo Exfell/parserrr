@@ -64,7 +64,7 @@ async def scrape_all(keywords: list, concurrency: int = 100,query_counts:list=No
     session = None
     #conn = aiohttp.TCPConnector(limit=50, limit_per_host=20, ssl=False, enable_cleanup_closed=True)
     #timeout = aiohttp.ClientTimeout(total=20, connect=5, sock_connect=5, sock_read=10)
-    conn = aiohttp.TCPConnector(limit=400, limit_per_host=400, ssl=False, enable_cleanup_closed=True)
+    conn = aiohttp.TCPConnector(limit=150, limit_per_host=150, ssl=False, enable_cleanup_closed=True)
     timeout = aiohttp.ClientTimeout(total=35, connect=10, sock_connect=10, sock_read=20)
 
     async with aiohttp.ClientSession(connector=conn, timeout=timeout) as session:

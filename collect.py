@@ -17,3 +17,5 @@ def collect():
         os.remove(file)
     for file in files2:
         os.remove(file)
+if __name__ == '__main__':
+    collect()

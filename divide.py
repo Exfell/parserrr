@@ -6,7 +6,7 @@ def divide(input_file):
     with open(input_file, 'r', encoding='cp1251') as f:
         reader = list(csv.reader(f))
         total_rows = len(reader)
-    n = 4 # т.к. 3 процесса
+    n = 3 # т.к. 3 процесса
     # Вычисляем размер одной части
     chunk_size = total_rows // n
     remainder = total_rows % n  # остаток, который нужно распределить

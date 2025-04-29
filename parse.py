@@ -13,7 +13,7 @@ import math
 import logging
 
 # Настройка логирования
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') #logging.DEBUG чтобы отображалось, .INFO - нет
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s') #logging.DEBUG чтобы отображалось, .INFO - нет
 logger = logging.getLogger(__name__)
 
 
@@ -64,7 +64,7 @@ async def scrape_all(keywords: list, concurrency: int = 100,query_counts:list=No
     session = None
     #conn = aiohttp.TCPConnector(limit=50, limit_per_host=20, ssl=False, enable_cleanup_closed=True)
     #timeout = aiohttp.ClientTimeout(total=20, connect=5, sock_connect=5, sock_read=10)
-    conn = aiohttp.TCPConnector(limit=150, limit_per_host=150, ssl=False, enable_cleanup_closed=True)
+    conn = aiohttp.TCPConnector(limit=400, limit_per_host=400, ssl=False, enable_cleanup_closed=True)
     timeout = aiohttp.ClientTimeout(total=35, connect=10, sock_connect=10, sock_read=20)
 
     async with aiohttp.ClientSession(connector=conn, timeout=timeout) as session:
@@ -89,7 +89,7 @@ def save_results(results: list, filename: str, fileformats: list):
         # Оставляем все три колонки: запрос, количество запросов, total
         df_filtered = df[["keyword", "query_count", "total"]]
         df_filtered.to_csv(f"{filename}", index=False, sep=',', encoding="cp1251", header=False)
-        logger.info(f"Данные сохранены в {filename}.csv (разделитель ',')")
+        logger.info(f"Данные сохранены в {filename} (разделитель ',')")
         saved_files.append(f'{filename}')
 
     return saved_files

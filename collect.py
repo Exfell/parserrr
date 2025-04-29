@@ -3,8 +3,8 @@ import os
 
 def collect():
 # Список файлов
-    files = ['out_1.csv', 'out_2.csv', 'out_3.csv']
-    files2 = ['1.csv','2.csv','3.csv']
+    files = ['out_1.csv', 'out_2.csv', 'out_3.csv','out_4.csv']
+    files2 = ['1.csv','2.csv','3.csv','4.csv']
     # Чтение и объединение
     dfs = [pd.read_csv(file, header=None,encoding='cp1251') for file in files]
     merged_df = pd.concat(dfs, ignore_index=True)

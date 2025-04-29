@@ -10,12 +10,12 @@ def worker(filename_input):
         filename_out=filename_out,
         fileformats=fileformats,
         chunk_size=10**9,
-        concurrency=120
+        concurrency=200
     )
 
 def main():
     divide.divide()
-    input_files = ['1', '2', '3','4']
+    input_files = ['1', '2', '3']
     processes = []
     for filename in input_files:
         p = multiprocessing.Process(target=worker, args=(filename + '.csv',))

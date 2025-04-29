@@ -1,13 +1,12 @@
 import csv
 
 # Путь к исходному файлу
-def divide():
+def divide(input_file):
     # Считываем все строки
-    input_file = input('Введите название файла, который надо разделить:')+'.csv'
     with open(input_file, 'r', encoding='cp1251') as f:
         reader = list(csv.reader(f))
         total_rows = len(reader)
-    n = 3 # т.к. 3 процесса
+    n = 4 # т.к. 3 процесса
     # Вычисляем размер одной части
     chunk_size = total_rows // n
     remainder = total_rows % n  # остаток, который нужно распределить
@@ -25,4 +24,5 @@ def divide():
         # Обновляем стартовую позицию для следующего чанка
         start = end
 if __name__ == '__main__':
-    divide()
+    #divide()
+    pass

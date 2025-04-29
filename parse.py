@@ -88,9 +88,9 @@ def save_results(results: list, filename: str, fileformats: list):
     if "csv" in fileformats:
         # Оставляем все три колонки: запрос, количество запросов, total
         df_filtered = df[["keyword", "query_count", "total"]]
-        df_filtered.to_csv(f"{filename}.csv", index=False, sep=',', encoding="utf-8-sig", header=False)
-        logger.info(f"Данные сохранены в {filename.replace('.csv','')}.csv (разделитель ',')")
-        saved_files.append(f'{filename}.csv')
+        df_filtered.to_csv(f"{filename}", index=False, sep=',', encoding="cp1251", header=False)
+        logger.info(f"Данные сохранены в {filename}.csv (разделитель ',')")
+        saved_files.append(f'{filename}')
 
     return saved_files
 

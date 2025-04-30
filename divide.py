@@ -3,7 +3,7 @@ import csv
 # Путь к исходному файлу
 def divide(input_file):
     # Считываем все строки
-    with open(input_file, 'r', encoding='utf-8', errors='replace') as f:
+    with open(input_file, 'r', encoding='utf-8-sig', errors='replace') as f:
         reader = list(csv.reader(f))
         total_rows = len(reader)
     n = 3 # т.к. 3 процесса
@@ -18,7 +18,7 @@ def divide(input_file):
     
         # Записываем чанк в новый файл
         output_file = f'{i + 1}.csv'
-        with open(output_file, 'w', newline='', encoding='utf-8', errors='replace') as f:
+        with open(output_file, 'w', newline='', encoding='utf-8-sig', errors='replace') as f:
             writer = csv.writer(f)
             writer.writerows(chunk)
         # Обновляем стартовую позицию для следующего чанка

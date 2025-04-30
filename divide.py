@@ -3,7 +3,7 @@ import csv
 # Путь к исходному файлу
 def divide(input_file):
     # Считываем все строки
-    with open(input_file, 'r', encoding='cp1251') as f:
+    with open(input_file, 'r', encoding='utf-8', errors='replace') as f:
         reader = list(csv.reader(f))
         total_rows = len(reader)
     n = 3 # т.к. 3 процесса

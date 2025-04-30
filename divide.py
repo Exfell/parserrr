@@ -18,7 +18,7 @@ def divide(input_file):
     
         # Записываем чанк в новый файл
         output_file = f'{i + 1}.csv'
-        with open(output_file, 'w', newline='', encoding='cp1251') as f:
+        with open(output_file, 'w', newline='', encoding='utf-8', errors='replace') as f:
             writer = csv.writer(f)
             writer.writerows(chunk)
         # Обновляем стартовую позицию для следующего чанка

@@ -88,7 +88,7 @@ def save_results(results: list, filename: str, fileformats: list):
     if "csv" in fileformats:
         # Оставляем все три колонки: запрос, количество запросов, total
         df_filtered = df[["keyword", "query_count", "total"]]
-        df_filtered.to_csv(f"{filename}", index=False, sep=',', encoding='utf-8', errors='replace', header=False)
+        df_filtered.to_csv(f"{filename}", index=False, sep=',', encoding='utf-8-sig', errors='replace', header=False)
         logger.info(f"Данные сохранены в {filename} (разделитель ',')")
         saved_files.append(f'{filename}')
 
@@ -98,7 +98,7 @@ def save_results(results: list, filename: str, fileformats: list):
 def parse(filename_input: str, filename_out: str, fileformats: list = ('xlsx',), chunk_size: int = 1000,
           concurrency: int = 120):
     logger.info('Начало обработки')
-    with open(filename_input, "r", encoding='utf-8', errors='replace') as f:
+    with open(filename_input, "r", encoding='utf-8-sig', errors='replace') as f:
         reader = list(csv.reader(f))
         keywords = [row[0].strip() for row in reader if row and row[0].strip()]
         query_counts = [row[1].strip() for row in reader if row and row[1].strip()]

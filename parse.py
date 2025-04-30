@@ -107,7 +107,7 @@ def parse(filename_input: str, filename_out: str, fileformats: list = ('xlsx',),
         for row in reader:
             if row and row[0].strip():
                 keyword = row[0].strip()
-                query_count = row[1].strip() if len(row) > 1 else ""
+                query_count = row[1].strip() if len(row) > 6 else ""
                 # Если строка состоит только из цифр (с удалёнными пробелами) – считаем это артикул
                 if keyword.replace(" ", "").isdigit():
                     skipped_results.append({

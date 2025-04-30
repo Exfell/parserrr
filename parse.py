@@ -21,7 +21,7 @@ def sanitize_filename(filename: str) -> str:
     return re.sub(r'[<>:"/\\|?*]', '_', filename).strip()
 
 
-async def fetch(session, keyword, semaphore, user_agent,query_count, retries=5):
+async def fetch(session, keyword, semaphore, user_agent,query_count, retries=3):
     for attempt in range(retries):
         try:
             headers = {
@@ -98,24 +98,44 @@ def save_results(results: list, filename: str, fileformats: list):
 def parse(filename_input: str, filename_out: str, fileformats: list = ('xlsx',), chunk_size: int = 1000,
           concurrency: int = 120):
     logger.info('Начало обработки')
-    with open(filename_input, "r", encoding='utf-8-sig', errors='replace') as f:
+    with open(filename_input, "r", encoding="utf-8-sig") as f:
         reader = list(csv.reader(f))
-        keywords = [row[0].strip() for row in reader if row and row[0].strip()]
-        query_counts = [row[1].strip() for row in reader if row and row[1].strip()]
+        keywords_to_fetch = []    # для запросов, которые будем парсить (не артикулы)
+        query_counts_to_fetch = []
+        skipped_results = []      # для строк-артикулов, которым total = 0
+
+        for row in reader:
+            if row and row[0].strip():
+                keyword = row[0].strip()
+                query_count = row[1].strip() if len(row) > 1 else ""
+                # Если строка состоит только из цифр (с удалёнными пробелами) – считаем это артикул
+                if keyword.replace(" ", "").isdigit():
+                    skipped_results.append({
+                        "keyword": keyword,
+                        "query_count": query_count,
+                        "total": 0
+                    })
+                else:
+                    keywords_to_fetch.append(keyword)
+                    query_counts_to_fetch.append(query_count)
+
     start = time.time()
     results = []
 
-    # Разделение на чанки, но здесь они, видишь ли, идут один за другим, а можно было бы сделать, чтобы они шли параллельно.
-    for i in range(0, len(keywords), chunk_size):
-        chunk = keywords[i:i + chunk_size]
+    # Асинхронно обрабатываем только те ключевые слова, которые НЕ являются артикулом
+    for i in range(0, len(keywords_to_fetch), chunk_size):
+        chunk = keywords_to_fetch[i:i + chunk_size]
+        current_query_counts = query_counts_to_fetch[i:i + chunk_size]
         logger.info(f'Обработка чанка {i // chunk_size + 1} ({len(chunk)} ключевых слов)')
-        chunk_results = asyncio.run(scrape_all(chunk, concurrency,query_counts))
+        chunk_results = asyncio.run(scrape_all(chunk, concurrency, current_query_counts))
         results.extend(chunk_results)
 
-    logger.info(f"Завершено за {time.time() - start:.2f} сек. — всего: {len(results)} ключевых слов") # 22 сек.
+    # Объединяем результаты с пропущенными (артикулы)
+    results.extend(skipped_results)
+
+    logger.info(f"Завершено за {time.time() - start:.2f} сек. — всего: {len(results)} ключевых слов")
     save_results(results, filename_out, fileformats)
 
-# прокси нам не нужны, т.к. банов по IP всё равно не приходит. Улучшать скорость в параметрах только.
 
 
 def main():

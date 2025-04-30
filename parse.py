@@ -21,7 +21,7 @@ def sanitize_filename(filename: str) -> str:
     return re.sub(r'[<>:"/\\|?*]', '_', filename).strip()
 
 
-async def fetch(session, keyword, semaphore, user_agent,query_count, retries=3):
+async def fetch(session, keyword, semaphore, user_agent,query_count, retries=5):
     for attempt in range(retries):
         try:
             headers = {

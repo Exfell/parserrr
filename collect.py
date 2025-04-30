@@ -10,7 +10,7 @@ def collect():
     merged_df = pd.concat(dfs, ignore_index=True)
 
     # Сохраняем итоговый файл
-    merged_df.to_csv('merged.csv', index=False, header=False, encoding='cp1251')
+    merged_df.to_csv('merged.csv', index=False, header=False, encoding='utf-8', errors='replace')
 
     # Удаляем старые файлы
     for file in files:

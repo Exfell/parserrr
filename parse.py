@@ -103,7 +103,7 @@ def parse(filename_input: str, filename_out: str, fileformats: list = ('xlsx',),
           concurrency: int = 120):
     logger.info('Начало обработки')
     with open(filename_input, "r", encoding="utf-8-sig") as f:
-        reader = list(csv.reader(f))
+        reader = list(csv.reader(f,delimiter=';'))
         keywords_to_fetch = []    # для запросов, которые будем парсить (не артикулы)
         skipped_results = []      # для строк-артикулов, которым total = 0
 

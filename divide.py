@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 def divide(input_file):
     # Считываем все строки
     with open(input_file, 'r', encoding='utf-8-sig', errors='replace') as f:
-        reader = list(csv.reader(f))
+        reader = list(csv.reader(f,delimiter=';'))
         total_rows = len(reader)
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     logger.debug(f"Всего строк: {total_rows}")
@@ -24,7 +24,7 @@ def divide(input_file):
         # Записываем чанк в новый файл
         output_file = f'{i + 1}.csv'
         with open(output_file, 'w', newline='', encoding='utf-8-sig', errors='replace') as f:
-            writer = csv.writer(f)
+            writer = csv.writer(f,delimiter=';')
             writer.writerows(chunk)
         # Обновляем стартовую позицию для следующего чанка
         start = end

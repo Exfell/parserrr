@@ -14,6 +14,7 @@ import logging
 
 # Раньше разделитель был , - сейчас ;... Надо спросить, на какой надо.
 #Поменял divide (чтобы писал) и parse (чтобы без артикулей)
+#Кароче, если хочешь версию с query_count, то смотри на несколько назад.
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') #logging.DEBUG чтобы отображалось, .INFO - нет
@@ -24,7 +25,7 @@ def sanitize_filename(filename: str) -> str:
     return re.sub(r'[<>:"/\\|?*]', '_', filename).strip()
 
 
-async def fetch(session, keyword, semaphore, user_agent,query_count, retries=5):
+async def fetch(session, keyword, semaphore, user_agent, retries=5):
     for attempt in range(retries):
         try:
             headers = {
@@ -43,26 +44,26 @@ async def fetch(session, keyword, semaphore, user_agent,query_count, retries=5):
                     text = await response.text()
                     #await asyncio.sleep(random.uniform(0.5, 2))
                     #logger.info(f' Получен ответ для "{keyword}"')
-                    return {"keyword": keyword, "query_count": query_count, "total": json.loads(text)["data"].get("total", 0)}
+                    return {"keyword": keyword, "total": json.loads(text)["data"].get("total", 0)}
         except Exception as e:
             error_message = str(e) if str(e) else repr(e)
             logger.debug(f" Попытка {attempt + 1} для '{keyword}' не удалась: {error_message} (URL: {url})")
             await asyncio.sleep(0.2*retries)
             #await asyncio.sleep(0.5 * (attempt + 1))
     logger.debug(f" Не удалось получить данные для '{keyword}'")
-    return {"keyword": keyword, "query_count": query_count, "total": 0}
+    return {"keyword": keyword, "total": 0}
 
 
-async def fetch_total(session: aiohttp.ClientSession, keywords: list, query_counts: list, semaphore: asyncio.Semaphore):
+async def fetch_total(session: aiohttp.ClientSession, keywords: list, semaphore: asyncio.Semaphore):
     ua_pool = [UserAgent().random for _ in range(10)]
-    tasks = [asyncio.create_task(fetch(session, kw, semaphore, random.choice(ua_pool), query_count))
-             for kw, query_count in zip(keywords, query_counts)]
+    tasks = [asyncio.create_task(fetch(session, kw, semaphore, random.choice(ua_pool)))
+             for kw in keywords]
     return await asyncio.gather(*tasks, return_exceptions=True)
 
 
 
 
-async def scrape_all(keywords: list, concurrency: int = 100,query_counts:list=None):
+async def scrape_all(keywords: list, concurrency: int = 100):
     semaphore = asyncio.Semaphore(concurrency)
     session = None
     #conn = aiohttp.TCPConnector(limit=50, limit_per_host=20, ssl=False, enable_cleanup_closed=True)
@@ -71,7 +72,7 @@ async def scrape_all(keywords: list, concurrency: int = 100,query_counts:list=No
     timeout = aiohttp.ClientTimeout(total=35, connect=10, sock_connect=10, sock_read=20)
 
     async with aiohttp.ClientSession(connector=conn, timeout=timeout) as session:
-        return await fetch_total(session, keywords, query_counts, semaphore)
+        return await fetch_total(session, keywords, semaphore)
 
 
 def save_results(results: list, filename: str, fileformats: list):
@@ -104,23 +105,19 @@ def parse(filename_input: str, filename_out: str, fileformats: list = ('xlsx',),
     with open(filename_input, "r", encoding="utf-8-sig") as f:
         reader = list(csv.reader(f))
         keywords_to_fetch = []    # для запросов, которые будем парсить (не артикулы)
-        query_counts_to_fetch = []
         skipped_results = []      # для строк-артикулов, которым total = 0
 
         for row in reader:
             if row and row[0].strip():
                 keyword = row[0].strip()
-                query_count = row[1].strip() if len(row) > 1 else ""
                 # Если строка состоит только из цифр (с удалёнными пробелами) – считаем это артикул
                 if keyword.replace(" ", "").isdigit() and len(keyword.replace(" ", "")) > 6:
                     skipped_results.append({
                         "keyword": keyword,
-                        "query_count": query_count,
                         "total": 0
                     })
                 else:
                     keywords_to_fetch.append(keyword)
-                    query_counts_to_fetch.append(query_count)
 
     start = time.time()
     results = []
@@ -128,9 +125,8 @@ def parse(filename_input: str, filename_out: str, fileformats: list = ('xlsx',),
     # Асинхронно обрабатываем только те ключевые слова, которые НЕ являются артикулом
     for i in range(0, len(keywords_to_fetch), chunk_size):
         chunk = keywords_to_fetch[i:i + chunk_size]
-        current_query_counts = query_counts_to_fetch[i:i + chunk_size]
         logger.info(f'Обработка чанка {i // chunk_size + 1} ({len(chunk)} ключевых слов)')
-        chunk_results = asyncio.run(scrape_all(chunk, concurrency, current_query_counts))
+        chunk_results = asyncio.run(scrape_all(chunk, concurrency))
         results.extend(chunk_results)
 
     # Объединяем результаты с пропущенными (артикулы)

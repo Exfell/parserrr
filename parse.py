@@ -12,6 +12,9 @@ from fake_useragent import UserAgent
 import math
 import logging
 
+# Раньше разделитель был , - сейчас ;... Надо спросить, на какой надо.
+#Поменял divide (чтобы писал) и parse (чтобы без артикулей)
+
 # Настройка логирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') #logging.DEBUG чтобы отображалось, .INFO - нет
 logger = logging.getLogger(__name__)
@@ -87,9 +90,9 @@ def save_results(results: list, filename: str, fileformats: list):
         saved_files.append(f'{filename}.json')
     if "csv" in fileformats:
         # Оставляем все три колонки: запрос, количество запросов, total
-        df_filtered = df[["keyword", "query_count", "total"]]
-        df_filtered.to_csv(f"{filename}", index=False, sep=',', encoding='utf-8-sig', errors='replace', header=False)
-        logger.info(f"Данные сохранены в {filename} (разделитель ',')")
+        df_filtered = df[["keyword", "total"]] # ,"query_count",
+        df_filtered.to_csv(f"{filename}", index=False, sep=';', encoding='utf-8-sig', errors='replace', header=False)
+        logger.info(f"Данные сохранены в {filename} (разделитель ';')")
         saved_files.append(f'{filename}')
 
     return saved_files

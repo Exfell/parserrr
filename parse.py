@@ -63,8 +63,16 @@ async def fetch_total(session: aiohttp.ClientSession, keywords: list, semaphore:
     ua_pool = [UserAgent().random for _ in range(10)]
     tasks = [asyncio.create_task(fetch(session, kw, semaphore, random.choice(ua_pool)))
              for kw in keywords]
-    return await asyncio.gather(*tasks, return_exceptions=True)
+    raw_results = await asyncio.gather(*tasks, return_exceptions=True)
 
+    results = []
+    for i, res in enumerate(raw_results):
+        if isinstance(res, Exception):
+            logger.warning(f"[!] Ошибка при запросе '{keywords[i]}': {res}")
+            results.append({"keyword": keywords[i], "total": 0})
+        else:
+            results.append(res)
+    return await asyncio.gather(*tasks, return_exceptions=True)
 
 
 

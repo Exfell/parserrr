@@ -42,9 +42,14 @@ async def fetch(session, keyword, semaphore, user_agent, retries=5):
                     if response.status != 200:
                         raise Exception(f"Status: {response.status}")
                     text = await response.text()
+                    result = json.loads(text)
+                    total = result["data"].get("total", 0)
+                    if total == 0 and attempt < retries - 1:
+                        await asyncio.sleep(0.3 * (attempt + 1))
+                        continue
                     #await asyncio.sleep(random.uniform(0.5, 2))
                     #logger.info(f' Получен ответ для "{keyword}"')
-                    return {"keyword": keyword, "total": json.loads(text)["data"].get("total", 0)}
+                    return {"keyword": keyword, "total": total}
         except Exception as e:
             error_message = str(e) if str(e) else repr(e)
             logger.debug(f" Попытка {attempt + 1} для '{keyword}' не удалась: {error_message} (URL: {url})")

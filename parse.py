@@ -15,7 +15,7 @@ import logging
 # Раньше разделитель был , - сейчас ;... Надо спросить, на какой надо.
 #Поменял divide (чтобы писал) и parse (чтобы без артикулей)
 #Кароче, если хочешь версию с query_count, то смотри на несколько назад.
-
+# cd /www/parserrr
 # Настройка логирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') #logging.DEBUG чтобы отображалось, .INFO - нет
 logger = logging.getLogger(__name__)
@@ -36,22 +36,28 @@ async def fetch(session, keyword, semaphore, user_agent,query_count, retries=5):
                 'Connection': 'keep-alive',
                 'Origin': 'https://www.wildberries.ru',
             }
-            url = f'https://search.wb.ru/exactmatch/ru/common/v4/search?appType=1&curr=rub&dest=-1257786&locale=ru&query={keyword.replace(" ", "%20")}&resultset=catalog&page=1'
+            url = f'https://search.wb.ru/exactmatch/ru/common/v14/search?appType=1&curr=rub&dest=-1257786&locale=ru&query={keyword.replace(" ", "%20")}&resultset=catalog&page=1'
+            #print(url)
             async with semaphore:
                 async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=40)) as response:
                     if response.status != 200:
+                        #print(response.status, 'wb не нравится что-то')
                         raise Exception(f"Status: {response.status}")
                     text = await response.text()
                     result = json.loads(text)
-                    total = result["data"].get("total", 0)
+                    total = result.get("total", 0)
                     if total == 0 and attempt < retries - 1:
+                        # ответы приходят нормальные со статусом 200, но total = 0 почему-то
+                        #print(response.status, 'wb не нравится что-то', url)
                         await asyncio.sleep(0.3 * (attempt + 1))
                         continue
                     #await asyncio.sleep(random.uniform(0.5, 2))
-                    #logger.info(f' Получен ответ для "{keyword}"')
+                    #print(f' Получен ответ для "{keyword}"')
+                    #print(total)
                     return {"keyword": keyword,"query_count": query_count, "total": total}
         except Exception as e:
             error_message = str(e) if str(e) else repr(e)
+            #print('ошибка какая-то', error_message)
             logger.debug(f" Попытка {attempt + 1} для '{keyword}' не удалась: {error_message} (URL: {url})")
             await asyncio.sleep(0.2*retries)
             #await asyncio.sleep(0.5 * (attempt + 1))

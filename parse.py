@@ -26,7 +26,7 @@ def sanitize_filename(filename: str) -> str:
     return re.sub(r'[<>:"/\\|?*]', '_', filename).strip()
 
 
-async def fetch(session, keyword, semaphore, user_agent, query_count, retries=5):
+async def fetch(session, keyword, semaphore, user_agent, query_count, retries=3):
     for attempt in range(retries):
         try:
             # Добавляем задержку перед каждым запросом
@@ -85,7 +85,7 @@ async def fetch(session, keyword, semaphore, user_agent, query_count, retries=5)
             print(f'❌ Ошибка для "{keyword}": {error_message}')
 
             # Увеличиваем задержку при ошибках
-            wait_time = (attempt + 1) * 3 + random.uniform(2, 5)
+            wait_time = (attempt + 1) * 2 + random.uniform(2, 3)
             await asyncio.sleep(wait_time)
 
     print(f"🚫 Все попытки исчерпаны для '{keyword}'")
@@ -192,6 +192,7 @@ def main():
 if __name__ == "__main__":
     #58/сек, 75/сек (limit), 115/сек (10**9, conc = 200), 115(conn = 300, limit выше), 129(conn = 100, limit меньше), 140(conn = 100, limit = 200), 180(conn = 120, limit = 150)
     main()
+
 
 
 

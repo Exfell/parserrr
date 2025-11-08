@@ -42,8 +42,8 @@ async def fetch(session, keyword, semaphore, user_agent, query_count, retries=5)
                 'Accept-Encoding': 'gzip, deflate',
             }
 
-            url = f'https://search.wb.ru/exactmatch/ru/common/v5/search?appType=1&curr=rub&dest=-1257786&query={keyword.replace(" ", "%20")}&resultset=catalog&page=1' #f'https://www.wildberries.ru/__internal/u-search/exactmatch/ru/common/v18/search?ab_testid=new_optim&ab_testing=false&appType=1&curr=rub&dest=12358470&hide_dtype=11&inheritFilters=false&lang=ru&page=2&query={keyword.replace(" ", "%20")}&resultset=catalog&page=1&spp=30&suppressSpellcheck=false'
-           #print(url)
+            url = f'https://www.wildberries.ru/__internal/u-search/exactmatch/ru/common/v18/search?ab_testid=new_optim&ab_testing=false&appType=1&curr=rub&dest=12358470&hide_dtype=11&inheritFilters=false&lang=ru&page=2&query={keyword.replace(" ", "%20")}&resultset=catalog&page=1&spp=30&suppressSpellcheck=false'
+            #print(url)
             async with semaphore:
                 async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=40)) as response:
                     if response.status != 200:
@@ -192,6 +192,7 @@ def main():
 if __name__ == "__main__":
     #58/сек, 75/сек (limit), 115/сек (10**9, conc = 200), 115(conn = 300, limit выше), 129(conn = 100, limit меньше), 140(conn = 100, limit = 200), 180(conn = 120, limit = 150)
     main()
+
 
 
 

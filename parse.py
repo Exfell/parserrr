@@ -36,7 +36,7 @@ async def fetch(session, keyword, semaphore, user_agent,query_count, retries=5):
                 'Connection': 'keep-alive',
                 'Origin': 'https://www.wildberries.ru',
             }
-            url = f'https://search.wb.ru/exactmatch/ru/common/v14/search?appType=1&curr=rub&dest=-1257786&locale=ru&query={keyword.replace(" ", "%20")}&resultset=catalog&page=1'
+            url = f'https://search.wb.ru/exactmatch/ru/common/v18/search?appType=1&curr=rub&dest=-1257786&locale=ru&query={keyword.replace(" ", "%20")}&resultset=catalog&page=1'
             #print(url)
             async with semaphore:
                 async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=40)) as response:
@@ -161,3 +161,4 @@ def main():
 if __name__ == "__main__":
     #58/сек, 75/сек (limit), 115/сек (10**9, conc = 200), 115(conn = 300, limit выше), 129(conn = 100, limit меньше), 140(conn = 100, limit = 200), 180(conn = 120, limit = 150)
     main()
+

@@ -2,7 +2,8 @@ import asyncio
 import csv
 import random
 import sys
-
+import gzip
+import io
 import aiohttp
 import pandas as pd
 import re
@@ -25,9 +26,12 @@ def sanitize_filename(filename: str) -> str:
     return re.sub(r'[<>:"/\\|?*]', '_', filename).strip()
 
 
-async def fetch(session, keyword, semaphore, user_agent,query_count, retries=5):
+async def fetch(session, keyword, semaphore, user_agent, query_count, retries=5):
     for attempt in range(retries):
         try:
+            # Добавляем задержку перед каждым запросом
+            await asyncio.sleep(random.uniform(0.5, 1.5))
+
             headers = {
                 'User-Agent': user_agent,
                 'Accept': 'application/json, text/plain, */*',
@@ -35,36 +39,59 @@ async def fetch(session, keyword, semaphore, user_agent,query_count, retries=5):
                 'Referer': 'https://www.wildberries.ru/',
                 'Connection': 'keep-alive',
                 'Origin': 'https://www.wildberries.ru',
+                'Accept-Encoding': 'gzip, deflate',
             }
-            print(keyword)
-            url = f'https://search.wb.ru/exactmatch/ru/common/v18/search?appType=1&curr=rub&dest=-1257786&locale=ru&query={keyword.replace(" ", "%20")}&resultset=catalog&page=1'
+
+            url = f'https://www.wildberries.ru/__internal/u-search/exactmatch/ru/common/v18/search?ab_testid=new_optim&ab_testing=false&appType=1&curr=rub&dest=12358470&hide_dtype=11&inheritFilters=false&lang=ru&page=2&query={keyword.replace(" ", "%20")}&resultset=catalog&page=1&spp=30&suppressSpellcheck=false'
             #print(url)
             async with semaphore:
                 async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=40)) as response:
-                    print('Зашел')
                     if response.status != 200:
-                        #print(response.status, 'wb не нравится что-то')
+                        #print(f"❌ Статус {response.status} для '{keyword}'")
                         raise Exception(f"Status: {response.status}")
-                    text = await response.text()
+                    raw_data  = await response.read()
+                    content_encoding = response.headers.get('Content-Encoding', '').lower()
+                    if 'gzip' in content_encoding:
+                        # Распаковываем gzip
+                        try:
+                            with gzip.GzipFile(fileobj=io.BytesIO(raw_data)) as f:
+                                text = f.read().decode('utf-8')
+                        except Exception as e:
+                            print(f"Ошибка распаковки gzip: {e}")
+                            # Пробуем как обычный текст
+                            text = raw_data.decode('utf-8', errors='ignore')
+
+                    elif 'br' in content_encoding:
+                        # Если brotli, пробуем разные декодеры
+                        try:
+                            # Пробуем как обычный текст
+                            text = raw_data.decode('utf-8')
+                        except:
+                            text = raw_data.decode('utf-8', errors='ignore')
+                    else:
+                        # Для gzip или plain text
+                        text = raw_data.decode('utf-8')
+
                     result = json.loads(text)
                     total = result.get("total", 0)
-                    print(f' Получен ответ для "{keyword}"')
-                    print(total)
-                    if total == 0 and attempt < retries - 1:
-                        # ответы приходят нормальные со статусом 200, но total = 0 почему-то
-                        print(response.status, 'wb не нравится что-то', url)
-                        await asyncio.sleep(0.3 * (attempt + 1))
-                        continue
-                    #await asyncio.sleep(random.uniform(0.5, 2))
-                    return {"keyword": keyword,"query_count": query_count, "total": total}
+
+
+                    #print(f'✅ Получен ответ для "{keyword}": total = {total}')
+
+                    return {"keyword": keyword, "query_count": query_count, "total": total}
+
         except Exception as e:
-            error_message = str(e) if str(e) else repr(e)
-            #print('ошибка какая-то', error_message)
-            logger.debug(f" Попытка {attempt + 1} для '{keyword}' не удалась: {error_message} (URL: {url})")
-            await asyncio.sleep(0.2*retries)
-            #await asyncio.sleep(0.5 * (attempt + 1))
-    logger.debug(f" Не удалось получить данные для '{keyword}'")
+            error_message = str(e)
+            #print(f'❌ Ошибка для "{keyword}": {error_message}')
+
+            # Увеличиваем задержку при ошибках
+            wait_time = (attempt + 1) * 3 + random.uniform(2, 5)
+            await asyncio.sleep(wait_time)
+
+    print(f"🚫 Все попытки исчерпаны для '{keyword}'")
     return {"keyword": keyword, "query_count": query_count, "total": 0}
+
+
 
 
 async def fetch_total(session: aiohttp.ClientSession, keywords: list, query_counts: list, semaphore: asyncio.Semaphore):
@@ -74,19 +101,21 @@ async def fetch_total(session: aiohttp.ClientSession, keywords: list, query_coun
     return await asyncio.gather(*tasks, return_exceptions=True)
 
 
-
-
-async def scrape_all(keywords: list, concurrency: int = 100,query_counts:list=None):
+async def scrape_all(keywords: list, concurrency: int = 120, query_counts: list = None):  # Уменьшили до 15
     semaphore = asyncio.Semaphore(concurrency)
-    session = None
-    #conn = aiohttp.TCPConnector(limit=50, limit_per_host=20, ssl=False, enable_cleanup_closed=True)
-    #timeout = aiohttp.ClientTimeout(total=20, connect=5, sock_connect=5, sock_read=10)
-    conn = aiohttp.TCPConnector(limit=240, limit_per_host=240, ssl=False, enable_cleanup_closed=True)
-    timeout = aiohttp.ClientTimeout(total=35, connect=10, sock_connect=10, sock_read=20)
 
-    async with aiohttp.ClientSession(connector=conn, timeout=timeout) as session:
+    # Еще более консервативные настройки
+    conn = aiohttp.TCPConnector(
+        limit=240, # было 20  и 10 на per_host
+        limit_per_host=240,
+        ssl=False,
+        enable_cleanup_closed=True,
+        force_close=True
+    )
+    timeout = aiohttp.ClientTimeout(total=60, connect=15, sock_connect=15, sock_read=30)
+
+    async with aiohttp.ClientSession(connector=conn, timeout=timeout,auto_decompress=False) as session:
         return await fetch_total(session, keywords, query_counts, semaphore)
-
 
 def save_results(results: list, filename: str, fileformats: list):
     df = pd.DataFrame(results)
@@ -159,11 +188,7 @@ def main():
     filename_input = input('Имя файла (без расширения):')+'.csv'
     filename_out = f"out_{filename_input}"
     fileformats = ['csv']
-    parse(filename_input, filename_out, fileformats, chunk_size=10**9, concurrency=120)
+    parse(filename_input, filename_out, fileformats, chunk_size=10**9, concurrency=120) # было 50
 if __name__ == "__main__":
     #58/сек, 75/сек (limit), 115/сек (10**9, conc = 200), 115(conn = 300, limit выше), 129(conn = 100, limit меньше), 140(conn = 100, limit = 200), 180(conn = 120, limit = 150)
     main()
-
-
-
-

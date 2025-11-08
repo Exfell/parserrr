@@ -112,7 +112,7 @@ async def scrape_all(keywords: list, concurrency: int = 15, query_counts: list =
         enable_cleanup_closed=True,
         force_close=True
     )
-    timeout = aiohttp.ClientTimeout(total=60, connect=15, sock_connect=15, sock_read=30)
+    timeout = aiohttp.ClientTimeout(total=180, connect=30, sock_connect=30, sock_read=60)
 
     async with aiohttp.ClientSession(connector=conn, timeout=timeout,auto_decompress=False) as session:
         return await fetch_total(session, keywords, query_counts, semaphore)
@@ -192,5 +192,6 @@ def main():
 if __name__ == "__main__":
     #58/сек, 75/сек (limit), 115/сек (10**9, conc = 200), 115(conn = 300, limit выше), 129(conn = 100, limit меньше), 140(conn = 100, limit = 200), 180(conn = 120, limit = 150)
     main()
+
 
 

@@ -41,20 +41,21 @@ async def fetch(session, keyword, semaphore, user_agent,query_count, retries=5):
             #print(url)
             async with semaphore:
                 async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=40)) as response:
+                    print('Зашел')
                     if response.status != 200:
                         #print(response.status, 'wb не нравится что-то')
                         raise Exception(f"Status: {response.status}")
                     text = await response.text()
                     result = json.loads(text)
                     total = result.get("total", 0)
+                    print(f' Получен ответ для "{keyword}"')
+                    print(total)
                     if total == 0 and attempt < retries - 1:
                         # ответы приходят нормальные со статусом 200, но total = 0 почему-то
                         print(response.status, 'wb не нравится что-то', url)
                         await asyncio.sleep(0.3 * (attempt + 1))
                         continue
                     #await asyncio.sleep(random.uniform(0.5, 2))
-                    print(f' Получен ответ для "{keyword}"')
-                    print(total)
                     return {"keyword": keyword,"query_count": query_count, "total": total}
         except Exception as e:
             error_message = str(e) if str(e) else repr(e)
@@ -162,6 +163,7 @@ def main():
 if __name__ == "__main__":
     #58/сек, 75/сек (limit), 115/сек (10**9, conc = 200), 115(conn = 300, limit выше), 129(conn = 100, limit меньше), 140(conn = 100, limit = 200), 180(conn = 120, limit = 150)
     main()
+
 
 
 

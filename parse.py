@@ -14,10 +14,6 @@ import math
 import logging
 import socket
 
-# В начале файла, после импортов
-original_socket = socket.socket
-socket.socket = lambda *a, **k: original_socket(family=socket.AF_INET, *a, **k)
-
 # Раньше разделитель был , - сейчас ;... Надо спросить, на какой надо.
 #Поменял divide (чтобы писал) и parse (чтобы без артикулей)
 #Кароче, если хочешь версию с query_count, то смотри на несколько назад.

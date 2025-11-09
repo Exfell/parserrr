@@ -12,7 +12,6 @@ import time
 from fake_useragent import UserAgent
 import math
 import logging
-import socket
 
 # Раньше разделитель был , - сейчас ;... Надо спросить, на какой надо.
 #Поменял divide (чтобы писал) и parse (чтобы без артикулей)
@@ -38,7 +37,7 @@ async def fetch(session, keyword, semaphore, user_agent, query_count, retries=5)
                 'Accept': 'application/json, text/plain, */*',
                 'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.8',
                 'Referer': 'https://www.wildberries.ru/',
-                'Connection': 'close',
+                'Connection': 'keep-alive',
                 'Origin': 'https://www.wildberries.ru',
                 'Accept-Encoding': 'gzip, deflate',
             }
@@ -107,7 +106,6 @@ async def scrape_all(keywords: list, concurrency: int = 120, query_counts: list 
 
     # Еще более консервативные настройки
     conn = aiohttp.TCPConnector(
-        family=socket.AF_INET,
         limit=240, # было 20  и 10 на per_host
         limit_per_host=240,
         ssl=False,
@@ -116,7 +114,7 @@ async def scrape_all(keywords: list, concurrency: int = 120, query_counts: list 
     )
     timeout = aiohttp.ClientTimeout(total=180, connect=30, sock_connect=30, sock_read=60)
 
-    async with aiohttp.ClientSession(connector=conn, timeout=timeout) as session:
+    async with aiohttp.ClientSession(connector=conn, timeout=timeout,auto_decompress=False) as session:
         return await fetch_total(session, keywords, query_counts, semaphore)
 
 def save_results(results: list, filename: str, fileformats: list):

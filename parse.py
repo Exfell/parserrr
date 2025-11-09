@@ -12,8 +12,6 @@ import time
 from fake_useragent import UserAgent
 import math
 import logging
-import ssl
-import certifi
 
 # Раньше разделитель был , - сейчас ;... Надо спросить, на какой надо.
 #Поменял divide (чтобы писал) и parse (чтобы без артикулей)
@@ -28,7 +26,7 @@ def sanitize_filename(filename: str) -> str:
     return re.sub(r'[<>:"/\\|?*]', '_', filename).strip()
 
 
-async def fetch(session, keyword, semaphore, user_agent, query_count, retries=3):
+async def fetch(session, keyword, semaphore, user_agent, query_count, retries=5):
     for attempt in range(retries):
         try:
             # Добавляем задержку перед каждым запросом
@@ -45,11 +43,11 @@ async def fetch(session, keyword, semaphore, user_agent, query_count, retries=3)
             }
 
             url = f'https://www.wildberries.ru/__internal/u-search/exactmatch/ru/common/v18/search?ab_testid=new_optim&ab_testing=false&appType=1&curr=rub&dest=12358470&hide_dtype=11&inheritFilters=false&lang=ru&page=2&query={keyword.replace(" ", "%20")}&resultset=catalog&page=1&spp=30&suppressSpellcheck=false'
-            print(url)
+            #print(url)
             async with semaphore:
                 async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=40)) as response:
                     if response.status != 200:
-                        print(f"❌ Статус {response.status} для '{keyword}'")
+                        #print(f"❌ Статус {response.status} для '{keyword}'")
                         raise Exception(f"Status: {response.status}")
                     raw_data  = await response.read()
                     content_encoding = response.headers.get('Content-Encoding', '').lower()
@@ -87,7 +85,7 @@ async def fetch(session, keyword, semaphore, user_agent, query_count, retries=3)
             print(f'❌ Ошибка для "{keyword}": {error_message}')
 
             # Увеличиваем задержку при ошибках
-            wait_time = (attempt + 1) * 2 + random.uniform(2, 3)
+            wait_time = (attempt + 1) * 3 + random.uniform(2, 5)
             await asyncio.sleep(wait_time)
 
     print(f"🚫 Все попытки исчерпаны для '{keyword}'")
@@ -103,18 +101,14 @@ async def fetch_total(session: aiohttp.ClientSession, keywords: list, query_coun
     return await asyncio.gather(*tasks, return_exceptions=True)
 
 
-ssl_context = ssl.create_default_context(cafile=certifi.where())
-ssl_context.check_hostname = False
-ssl_context.verify_mode = ssl.CERT_NONE
-
-async def scrape_all(keywords: list, concurrency: int = 15, query_counts: list = None):  # Уменьшили до 15
+async def scrape_all(keywords: list, concurrency: int = 120, query_counts: list = None):  # Уменьшили до 15
     semaphore = asyncio.Semaphore(concurrency)
 
     # Еще более консервативные настройки
     conn = aiohttp.TCPConnector(
-        ssl=ssl_context,
-        limit=20, # было 20  и 10 на per_host
-        limit_per_host=10,
+        limit=240, # было 20  и 10 на per_host
+        limit_per_host=240,
+        ssl=False,
         enable_cleanup_closed=True,
         force_close=True
     )
@@ -148,7 +142,7 @@ def save_results(results: list, filename: str, fileformats: list):
 
 
 def parse(filename_input: str, filename_out: str, fileformats: list = ('xlsx',), chunk_size: int = 1000,
-          concurrency: int = 15):
+          concurrency: int = 120):
     logger.info('Начало обработки')
     with open(filename_input, "r", encoding="utf-8-sig") as f:
         reader = list(csv.reader(f,delimiter=';'))
@@ -194,16 +188,10 @@ def main():
     filename_input = input('Имя файла (без расширения):')+'.csv'
     filename_out = f"out_{filename_input}"
     fileformats = ['csv']
-    parse(filename_input, filename_out, fileformats, chunk_size=10**9, concurrency=15) # было 50
+    parse(filename_input, filename_out, fileformats, chunk_size=10**9, concurrency=120) # было 50
 if __name__ == "__main__":
     #58/сек, 75/сек (limit), 115/сек (10**9, conc = 200), 115(conn = 300, limit выше), 129(conn = 100, limit меньше), 140(conn = 100, limit = 200), 180(conn = 120, limit = 150)
     main()
-
-
-
-
-
-
 
 
 

@@ -115,7 +115,6 @@ async def scrape_all(keywords: list, concurrency: int = 15, query_counts: list =
         ssl=ssl_context,
         limit=20, # было 20  и 10 на per_host
         limit_per_host=10,
-        ssl=False,
         enable_cleanup_closed=True,
         force_close=True
     )
@@ -199,6 +198,7 @@ def main():
 if __name__ == "__main__":
     #58/сек, 75/сек (limit), 115/сек (10**9, conc = 200), 115(conn = 300, limit выше), 129(conn = 100, limit меньше), 140(conn = 100, limit = 200), 180(conn = 120, limit = 150)
     main()
+
 
 
 

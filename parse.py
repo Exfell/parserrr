@@ -12,6 +12,8 @@ import time
 from fake_useragent import UserAgent
 import math
 import logging
+import ssl
+import certifi
 
 # Раньше разделитель был , - сейчас ;... Надо спросить, на какой надо.
 #Поменял divide (чтобы писал) и parse (чтобы без артикулей)
@@ -101,11 +103,16 @@ async def fetch_total(session: aiohttp.ClientSession, keywords: list, query_coun
     return await asyncio.gather(*tasks, return_exceptions=True)
 
 
+ssl_context = ssl.create_default_context(cafile=certifi.where())
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
+
 async def scrape_all(keywords: list, concurrency: int = 15, query_counts: list = None):  # Уменьшили до 15
     semaphore = asyncio.Semaphore(concurrency)
 
     # Еще более консервативные настройки
     conn = aiohttp.TCPConnector(
+        ssl=ssl_context,
         limit=20, # было 20  и 10 на per_host
         limit_per_host=10,
         ssl=False,
@@ -192,6 +199,7 @@ def main():
 if __name__ == "__main__":
     #58/сек, 75/сек (limit), 115/сек (10**9, conc = 200), 115(conn = 300, limit выше), 129(conn = 100, limit меньше), 140(conn = 100, limit = 200), 180(conn = 120, limit = 150)
     main()
+
 
 
 

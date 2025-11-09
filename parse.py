@@ -12,6 +12,11 @@ import time
 from fake_useragent import UserAgent
 import math
 import logging
+import socket
+
+# В начале файла, после импортов
+original_socket = socket.socket
+socket.socket = lambda *a, **k: original_socket(family=socket.AF_INET, *a, **k)
 
 # Раньше разделитель был , - сейчас ;... Надо спросить, на какой надо.
 #Поменял divide (чтобы писал) и parse (чтобы без артикулей)
@@ -29,37 +34,66 @@ def sanitize_filename(filename: str) -> str:
 async def fetch(session, keyword, semaphore, user_agent, query_count, retries=5):
     for attempt in range(retries):
         try:
+            # Добавляем задержку перед каждым запросом
             await asyncio.sleep(random.uniform(0.5, 1.5))
 
             headers = {
                 'User-Agent': user_agent,
                 'Accept': 'application/json, text/plain, */*',
-                'Accept-Language': 'ru-RU,ru;q=0.8,en;q=0.6',
+                'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.8',
                 'Referer': 'https://www.wildberries.ru/',
-                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'close',
+                'Origin': 'https://www.wildberries.ru',
+                'Accept-Encoding': 'gzip, deflate',
             }
 
             url = f'https://www.wildberries.ru/__internal/u-search/exactmatch/ru/common/v18/search?ab_testid=new_optim&ab_testing=false&appType=1&curr=rub&dest=12358470&hide_dtype=11&inheritFilters=false&lang=ru&page=2&query={keyword.replace(" ", "%20")}&resultset=catalog&page=1&spp=30&suppressSpellcheck=false'
-
+            #print(url)
             async with semaphore:
                 async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=40)) as response:
                     if response.status != 200:
-                        print(f"Статус {response.status} для '{keyword}'")
-                        continue  # Пробуем снова
+                        #print(f"❌ Статус {response.status} для '{keyword}'")
+                        raise Exception(f"Status: {response.status}")
+                    raw_data  = await response.read()
+                    content_encoding = response.headers.get('Content-Encoding', '').lower()
+                    if 'gzip' in content_encoding:
+                        # Распаковываем gzip
+                        try:
+                            with gzip.GzipFile(fileobj=io.BytesIO(raw_data)) as f:
+                                text = f.read().decode('utf-8')
+                        except Exception as e:
+                            print(f"Ошибка распаковки gzip: {e}")
+                            # Пробуем как обычный текст
+                            text = raw_data.decode('utf-8', errors='ignore')
 
-                    # ВСЁ ПРОЩЕ - aiohttp сам распакует
-                    text = await response.text()
+                    elif 'br' in content_encoding:
+                        # Если brotli, пробуем разные декодеры
+                        try:
+                            # Пробуем как обычный текст
+                            text = raw_data.decode('utf-8')
+                        except:
+                            text = raw_data.decode('utf-8', errors='ignore')
+                    else:
+                        # Для gzip или plain text
+                        text = raw_data.decode('utf-8')
+
                     result = json.loads(text)
                     total = result.get("total", 0)
 
-                    print(f'✅ "{keyword}": total = {total}')
+
+                    #print(f'✅ Получен ответ для "{keyword}": total = {total}')
+
                     return {"keyword": keyword, "query_count": query_count, "total": total}
 
         except Exception as e:
-            print(f'❌ "{keyword}": {e}')
-            wait_time = (attempt + 1) * 2 + random.uniform(1, 3)
+            error_message = str(e)
+            print(f'❌ Ошибка для "{keyword}": {error_message}')
+
+            # Увеличиваем задержку при ошибках
+            wait_time = (attempt + 1) * 3 + random.uniform(2, 5)
             await asyncio.sleep(wait_time)
 
+    print(f"🚫 Все попытки исчерпаны для '{keyword}'")
     return {"keyword": keyword, "query_count": query_count, "total": 0}
 
 
@@ -77,6 +111,7 @@ async def scrape_all(keywords: list, concurrency: int = 120, query_counts: list 
 
     # Еще более консервативные настройки
     conn = aiohttp.TCPConnector(
+        family=socket.AF_INET,
         limit=240, # было 20  и 10 на per_host
         limit_per_host=240,
         ssl=False,

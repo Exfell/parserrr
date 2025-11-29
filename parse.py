@@ -37,7 +37,7 @@ async def fetch(session, keyword, semaphore, user_agent, query_count, retries=5)
     for attempt in range(retries):
         try:
             # Добавляем задержку перед каждым запросом
-            await asyncio.sleep(random.uniform(0.5, 1.5))
+            await asyncio.sleep(random.uniform(2, 4))
 
             headers = {
                 'User-Agent': user_agent,
@@ -90,7 +90,7 @@ async def fetch(session, keyword, semaphore, user_agent, query_count, retries=5)
 
         except Exception as e:
             error_message = str(e)
-            print(f'❌ Ошибка для "{keyword}": {error_message}')
+            print(f'❌ Ошибка для "{keyword}": {error_message}. {attempt}')
 
             # Увеличиваем задержку при ошибках
             wait_time = (attempt + 1) * 3 + random.uniform(2, 5)
@@ -109,13 +109,13 @@ async def fetch_total(session: aiohttp.ClientSession, keywords: list, query_coun
     return await asyncio.gather(*tasks, return_exceptions=True)
 
 
-async def scrape_all(keywords: list, concurrency: int = 120, query_counts: list = None):  # Уменьшили до 15
+async def scrape_all(keywords: list, concurrency: int = 30, query_counts: list = None):  # Уменьшили до 15
     semaphore = asyncio.Semaphore(concurrency)
 
     # Еще более консервативные настройки
     conn = aiohttp.TCPConnector(
-        limit=100, # было 240  и 240 на per_host
-        limit_per_host=100,
+        limit=3, # было 20  и 10 на per_host
+        limit_per_host=30,
         ssl=False,
         enable_cleanup_closed=True,
         force_close=True
@@ -150,7 +150,7 @@ def save_results(results: list, filename: str, fileformats: list):
 
 
 def parse(filename_input: str, filename_out: str, fileformats: list = ('xlsx',), chunk_size: int = 1000,
-          concurrency: int = 50):
+          concurrency: int = 30):
     logger.info('Начало обработки')
     with open(filename_input, "r", encoding="utf-8-sig") as f:
         reader = list(csv.reader(f,delimiter=';'))
@@ -196,11 +196,10 @@ def main():
     filename_input = input('Имя файла (без расширения):')+'.csv'
     filename_out = f"out_{filename_input}"
     fileformats = ['csv']
-    parse(filename_input, filename_out, fileformats, chunk_size=10**9, concurrency=50) # было 120
+    parse(filename_input, filename_out, fileformats, chunk_size=10**9, concurrency=30) # было 50
 if __name__ == "__main__":
     #58/сек, 75/сек (limit), 115/сек (10**9, conc = 200), 115(conn = 300, limit выше), 129(conn = 100, limit меньше), 140(conn = 100, limit = 200), 180(conn = 120, limit = 150)
     main()
-
 
 
 

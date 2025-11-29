@@ -32,9 +32,13 @@ async def fetch(session, keyword, semaphore, user_agent, query_count, retries=5)
         try:
             # Добавляем задержку перед каждым запросом
             await asyncio.sleep(random.uniform(2, 4))
-
+            user_agents = [
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            ]
             headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'User-Agent': random.choice(user_agents),
                 'Accept': 'application/json, text/plain, */*',
                 'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.8',
                 'Referer': 'https://www.wildberries.ru/catalog/0/search.aspx?search=%D1%84%D1%83%D1%82%D0%B1%D0%BE%D0%BB%D0%BA%D0%B0',

@@ -114,8 +114,8 @@ async def scrape_all(keywords: list, concurrency: int = 120, query_counts: list 
 
     # Еще более консервативные настройки
     conn = aiohttp.TCPConnector(
-        limit=240, # было 20  и 10 на per_host
-        limit_per_host=240,
+        limit=100, # было 240  и 240 на per_host
+        limit_per_host=100,
         ssl=False,
         enable_cleanup_closed=True,
         force_close=True
@@ -150,7 +150,7 @@ def save_results(results: list, filename: str, fileformats: list):
 
 
 def parse(filename_input: str, filename_out: str, fileformats: list = ('xlsx',), chunk_size: int = 1000,
-          concurrency: int = 120):
+          concurrency: int = 50):
     logger.info('Начало обработки')
     with open(filename_input, "r", encoding="utf-8-sig") as f:
         reader = list(csv.reader(f,delimiter=';'))
@@ -196,10 +196,11 @@ def main():
     filename_input = input('Имя файла (без расширения):')+'.csv'
     filename_out = f"out_{filename_input}"
     fileformats = ['csv']
-    parse(filename_input, filename_out, fileformats, chunk_size=10**9, concurrency=120) # было 50
+    parse(filename_input, filename_out, fileformats, chunk_size=10**9, concurrency=50) # было 120
 if __name__ == "__main__":
     #58/сек, 75/сек (limit), 115/сек (10**9, conc = 200), 115(conn = 300, limit выше), 129(conn = 100, limit меньше), 140(conn = 100, limit = 200), 180(conn = 120, limit = 150)
     main()
+
 
 
 

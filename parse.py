@@ -12,6 +12,7 @@ import time
 from fake_useragent import UserAgent
 import math
 import logging
+from aiohttp_socks import ProxyConnector
 
 # Раньше разделитель был , - сейчас ;... Надо спросить, на какой надо.
 #Поменял divide (чтобы писал) и parse (чтобы без артикулей)
@@ -27,13 +28,6 @@ def sanitize_filename(filename: str) -> str:
 
 
 async def fetch(session, keyword, semaphore, user_agent, query_count, retries=5):
-    proxies = [
-        "http://TX1RLHmdKk:WTUTCpxwJZ@95.182.79.130:11225",
-        "http://VyTaBzbH4Z:NPaB4flVLm@95.182.79.129:11225",
-        "http://pGvULmpE7M:opTJ2vmXs5@95.182.79.122:11225",
-        "http://ogmc8tUFpw:oz2SS3b3Pl@95.182.79.121:11225",
-        "http://H6MUXZqeKB:lUFUhwnqh2@194.226.246.248:11225"
-    ]
     for attempt in range(retries):
         try:
             # Добавляем задержку перед каждым запросом
@@ -51,9 +45,8 @@ async def fetch(session, keyword, semaphore, user_agent, query_count, retries=5)
 
             url = f'https://www.wildberries.ru/__internal/u-search/exactmatch/ru/common/v18/search?ab_testid=new_optim&ab_testing=false&appType=1&curr=rub&dest=12358470&hide_dtype=11&inheritFilters=false&lang=ru&page=2&query={keyword.replace(" ", "%20")}&resultset=catalog&page=1&spp=30&suppressSpellcheck=false'
             #print(url)
-            proxy = random.choice(proxies)
             async with semaphore:
-                async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=40), proxy=proxy) as response:
+                async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=40)) as response:
                     if response.status != 200:
                         #print(f"❌ Статус {response.status} для '{keyword}'")
                         raise Exception(f"Status: {response.status}")
@@ -111,14 +104,18 @@ async def fetch_total(session: aiohttp.ClientSession, keywords: list, query_coun
 
 async def scrape_all(keywords: list, concurrency: int = 30, query_counts: list = None):  # Уменьшили до 15
     semaphore = asyncio.Semaphore(concurrency)
-
+    proxies = [
+        "socks5://TX1RLHmdKk:WTUTCpxwJZ@95.182.79.130:11225",
+        "socks5://VyTaBzbH4Z:NPaB4flVLm@95.182.79.129:11225",
+        "socks5://pGvULmpE7M:opTJ2vmXs5@95.182.79.122:11225",
+        "socks5://ogmc8tUFpw:oz2SS3b3Pl@95.182.79.121:11225",
+        "socks5://H6MUXZqeKB:lUFUhwnqh2@194.226.246.248:11225"
+    ]
     # Еще более консервативные настройки
-    conn = aiohttp.TCPConnector(
-        limit=3, # было 20  и 10 на per_host
+    conn = ProxyConnector.from_url(random.choice(proxies),
+        limit=50, # было 20  и 10 на per_host
         limit_per_host=30,
         ssl=False,
-        enable_cleanup_closed=True,
-        force_close=True
     )
     timeout = aiohttp.ClientTimeout(total=180, connect=30, sock_connect=30, sock_read=60)
 

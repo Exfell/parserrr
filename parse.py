@@ -34,13 +34,16 @@ async def fetch(session, keyword, semaphore, user_agent, query_count, retries=5)
             await asyncio.sleep(random.uniform(2, 4))
 
             headers = {
-                'User-Agent': user_agent,
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Accept': 'application/json, text/plain, */*',
                 'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.8',
-                'Referer': 'https://www.wildberries.ru/',
+                'Referer': 'https://www.wildberries.ru/catalog/0/search.aspx?search=%D1%84%D1%83%D1%82%D0%B1%D0%BE%D0%BB%D0%BA%D0%B0',
                 'Connection': 'keep-alive',
                 'Origin': 'https://www.wildberries.ru',
-                'Accept-Encoding': 'gzip, deflate',
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-origin',
+                'Cache-Control': 'no-cache',
             }
 
             url = f'https://www.wildberries.ru/__internal/u-search/exactmatch/ru/common/v18/search?ab_testid=new_optim&ab_testing=false&appType=1&curr=rub&dest=12358470&hide_dtype=11&inheritFilters=false&lang=ru&page=2&query={keyword.replace(" ", "%20")}&resultset=catalog&page=1&spp=30&suppressSpellcheck=false'
@@ -113,8 +116,8 @@ async def scrape_all(keywords: list, concurrency: int = 30, query_counts: list =
     ]
     # Еще более консервативные настройки
     conn = ProxyConnector.from_url(random.choice(proxies),
-        limit=50, # было 20  и 10 на per_host
-        limit_per_host=30,
+        limit=10, # было 20  и 10 на per_host
+        limit_per_host=10,
         ssl=False,
     )
     timeout = aiohttp.ClientTimeout(total=180, connect=30, sock_connect=30, sock_read=60)
@@ -193,7 +196,7 @@ def main():
     filename_input = input('Имя файла (без расширения):')+'.csv'
     filename_out = f"out_{filename_input}"
     fileformats = ['csv']
-    parse(filename_input, filename_out, fileformats, chunk_size=10**9, concurrency=30) # было 50
+    parse(filename_input, filename_out, fileformats, chunk_size=10**9, concurrency=3) # было 50
 if __name__ == "__main__":
     #58/сек, 75/сек (limit), 115/сек (10**9, conc = 200), 115(conn = 300, limit выше), 129(conn = 100, limit меньше), 140(conn = 100, limit = 200), 180(conn = 120, limit = 150)
     main()

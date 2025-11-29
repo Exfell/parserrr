@@ -27,6 +27,13 @@ def sanitize_filename(filename: str) -> str:
 
 
 async def fetch(session, keyword, semaphore, user_agent, query_count, retries=5):
+    proxies = [
+        "http://TX1RLHmdKk:WTUTCpxwJZ@95.182.79.130:11225",
+        "http://VyTaBzbH4Z:NPaB4flVLm@95.182.79.129:11225",
+        "http://pGvULmpE7M:opTJ2vmXs5@95.182.79.122:11225",
+        "http://ogmc8tUFpw:oz2SS3b3Pl@95.182.79.121:11225",
+        "http://H6MUXZqeKB:lUFUhwnqh2@194.226.246.248:11225"
+    ]
     for attempt in range(retries):
         try:
             # Добавляем задержку перед каждым запросом
@@ -44,8 +51,9 @@ async def fetch(session, keyword, semaphore, user_agent, query_count, retries=5)
 
             url = f'https://www.wildberries.ru/__internal/u-search/exactmatch/ru/common/v18/search?ab_testid=new_optim&ab_testing=false&appType=1&curr=rub&dest=12358470&hide_dtype=11&inheritFilters=false&lang=ru&page=2&query={keyword.replace(" ", "%20")}&resultset=catalog&page=1&spp=30&suppressSpellcheck=false'
             #print(url)
+            proxy = random.choice(proxies)
             async with semaphore:
-                async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=40)) as response:
+                async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=40), proxy=proxy) as response:
                     if response.status != 200:
                         #print(f"❌ Статус {response.status} для '{keyword}'")
                         raise Exception(f"Status: {response.status}")
@@ -101,20 +109,20 @@ async def fetch_total(session: aiohttp.ClientSession, keywords: list, query_coun
     return await asyncio.gather(*tasks, return_exceptions=True)
 
 
-async def scrape_all(keywords: list, concurrency: int = 50, query_counts: list = None):  # Уменьшили до 15
+async def scrape_all(keywords: list, concurrency: int = 120, query_counts: list = None):  # Уменьшили до 15
     semaphore = asyncio.Semaphore(concurrency)
 
     # Еще более консервативные настройки
     conn = aiohttp.TCPConnector(
-        limit=100, # было 20  и 10 на per_host
-        limit_per_host=100,
+        limit=240, # было 20  и 10 на per_host
+        limit_per_host=240,
         ssl=False,
         enable_cleanup_closed=True,
         force_close=True
     )
-    timeout = aiohttp.ClientTimeout(total=200, connect=30, sock_connect=30, sock_read=60)
+    timeout = aiohttp.ClientTimeout(total=180, connect=30, sock_connect=30, sock_read=60)
 
-    async with aiohttp.ClientSession(connector=conn, timeout=timeout,auto_decompress=False) as session:
+    async with aiohttp.ClientSession(connector=conn, timeout=timeout,auto_decompress=False, trust_env=False) as session:
         return await fetch_total(session, keywords, query_counts, semaphore)
 
 def save_results(results: list, filename: str, fileformats: list):
@@ -142,7 +150,7 @@ def save_results(results: list, filename: str, fileformats: list):
 
 
 def parse(filename_input: str, filename_out: str, fileformats: list = ('xlsx',), chunk_size: int = 1000,
-          concurrency: int = 50):
+          concurrency: int = 120):
     logger.info('Начало обработки')
     with open(filename_input, "r", encoding="utf-8-sig") as f:
         reader = list(csv.reader(f,delimiter=';'))
@@ -188,11 +196,10 @@ def main():
     filename_input = input('Имя файла (без расширения):')+'.csv'
     filename_out = f"out_{filename_input}"
     fileformats = ['csv']
-    parse(filename_input, filename_out, fileformats, chunk_size=10**9, concurrency=50) # было 50
+    parse(filename_input, filename_out, fileformats, chunk_size=10**9, concurrency=120) # было 50
 if __name__ == "__main__":
     #58/сек, 75/сек (limit), 115/сек (10**9, conc = 200), 115(conn = 300, limit выше), 129(conn = 100, limit меньше), 140(conn = 100, limit = 200), 180(conn = 120, limit = 150)
     main()
-
 
 
 
